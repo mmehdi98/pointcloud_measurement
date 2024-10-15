@@ -19,65 +19,68 @@ def main():
 
     bag_file = "F:\\Measurements\\Test 1\\300\\20240624_155309.bag"
 
-    pipeline = rs.pipeline()
-    config = rs.config()
+    try:
+        pipeline = rs.pipeline()
+        config = rs.config()
 
-    config.enable_device_from_file(bag_file)
+        rs.config.enable_device_from_file(config, bag_file)
 
-    pipeline.start(config)
+        pipeline.start(config)
 
-    pc = rs.pointcloud()
+        pc = rs.pointcloud()
+        points = rs.points()
 
-    align_to = rs.stream.color
-    align = rs.align(align_to)
+        align_to = rs.stream.color
+        align = rs.align(align_to)
 
-    paused = False
-    depth_image = None
-    depth_frame = None
-    color_image = None
+        paused = False
+        depth_image = None
+        depth_frame = None
+        color_image = None
 
-    while True:
-        if not paused:
-            frames = pipeline.wait_for_frames()
-            aligned_frames = align.process(frames)
+        while True:
+            if not paused:
+                frames = pipeline.wait_for_frames()
+                aligned_frames = align.process(frames)
 
-            depth_frame = aligned_frames.get_depth_frame()
-            color_frame = aligned_frames.get_color_frame()
+                depth_frame = aligned_frames.get_depth_frame()
+                color_frame = aligned_frames.get_color_frame()
 
-            if not depth_frame or not color_frame:
-                print("Could not retrieve frames")
-                continue
+                if not depth_frame or not color_frame:
+                    print("Could not retrieve frames")
+                    continue
 
-            depth_image = np.asanyarray(depth_frame.get_data())
-            color_image = np.asanyarray(color_frame.get_data())
+                depth_image = np.asanyarray(depth_frame.get_data())
+                color_image = np.asanyarray(color_frame.get_data())
 
-            cv2.imshow('Color Image', color_image)
+                cv2.imshow('Color Image', color_image)
 
-        # Window management
-        if cv2.getWindowProperty('Color Image', cv2.WND_PROP_VISIBLE) < 1:
-            break
+            # Window management
+            if cv2.getWindowProperty('Color Image', cv2.WND_PROP_VISIBLE) < 1:
+                break
 
-        key = cv2.waitKey(1) & 0xFF
+            key = cv2.waitKey(1) & 0xFF
 
-        if key == ord(' '):
-            paused = not paused
+            if key == ord(' '):
+                paused = not paused
 
-        if key == ord('q'):
-            break
+            if key == ord('q'):
+                break
 
-        # Desired frame manipulation
-        if paused:
-            cv2.setMouseCallback('Color Image', on_mouse_click, param={
-                'depth_image': depth_image, 
-                'depth_frame': depth_frame, 
-                'color_frame': color_frame
-            })
+            # Desired frame manipulation
+            if paused:
+                cv2.setMouseCallback('Color Image', on_mouse_click, param={
+                    'depth_image': depth_image, 
+                    'depth_frame': depth_frame, 
+                    'color_frame': color_frame
+                })
 
-            if key == ord('s') or (key == ord('S') and (cv2.waitKey(1) & 0xFF == 224)):
-                save_data(depth_image, color_image, clicked_coordinates)
-
-    pipeline.stop()
-    cv2.destroyAllWindows()
+                if key == ord('s') or (key == ord('S') and (cv2.waitKey(1) & 0xFF == 224)):
+                    save_data(depth_image, color_image, clicked_coordinates)
+                    save_as_ply(pc, frames, depth_frame, color_frame)
+    finally:
+        pipeline.stop()
+        cv2.destroyAllWindows()
 
 
 def on_mouse_click(event, x, y, flags, param):
@@ -136,6 +139,22 @@ def get_next_filename(base_name, extension):
     next_number = max(numbers, default=0) + 1 
 
     return os.path.join(save_directory, f"{base_name}_{next_number}{extension}")
+
+def save_as_ply(pc, frames, depth_frame, color_frame):
+    pc.map_to(color_frame)
+
+    points = pc.calculate(depth_frame)
+
+    ply = rs.save_to_ply(get_next_filename("pointcloud", ".ply"))
+
+    ply.set_option(rs.save_to_ply.option_ply_binary, False)
+    ply.set_option(rs.save_to_ply.option_ply_normals, True)
+
+    print("Saving to output.ply...")
+
+    ply.process(frames)
+    
+    print("Done")
 
 if __name__ == "__main__":
     main()
