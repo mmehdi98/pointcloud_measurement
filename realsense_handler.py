@@ -100,7 +100,9 @@ class RealSenseHandler:
         self.pc.map_to(color_frame)
         points = self.pc.calculate(depth_frame)
 
-        ply = rs.save_to_ply(self.get_next_filename("pointcloud", ".ply"))
+        self.ply_filename = self.get_next_filename("pointcloud", ".ply")
+
+        ply = rs.save_to_ply(self.ply_filename)
         ply.set_option(rs.save_to_ply.option_ply_binary, False)
         ply.set_option(rs.save_to_ply.option_ply_normals, True)
 
