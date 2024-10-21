@@ -63,23 +63,23 @@ class RealSenseHandler:
     def save_data(self, depth_image, color_image):
         if self.clicked_coordinates is None:
             print("No coordinates selected to save.")
-            return
+        else:
+            coordinates_to_save = {
+                "x": float(self.clicked_coordinates["x"]),
+                "y": float(self.clicked_coordinates["y"]),
+                "z": float(self.clicked_coordinates["z"]),
+                "depth": int(self.clicked_coordinates["depth"]),
+                "pixel": [int(p) for p in self.clicked_coordinates["pixel"]]
+            }
 
-        coordinates_to_save = {
-            "x": float(self.clicked_coordinates["x"]),
-            "y": float(self.clicked_coordinates["y"]),
-            "z": float(self.clicked_coordinates["z"]),
-            "depth": int(self.clicked_coordinates["depth"]),
-            "pixel": [int(p) for p in self.clicked_coordinates["pixel"]]
-        }
+            coord_filename = self.get_next_filename("coordinates_color_image", ".json")
+            with open(coord_filename, 'w') as coord_file:
+                json.dump(coordinates_to_save, coord_file, indent=4)
+            print(f"Coordinates saved to: {coord_filename}")
 
-        coord_filename = self.get_next_filename("coordinates", ".json")
+        
         color_filename = self.get_next_filename("color_image", ".png")
         depth_filename = self.get_next_filename("depth_image", ".npy")
-
-        with open(coord_filename, 'w') as coord_file:
-            json.dump(coordinates_to_save, coord_file, indent=4)
-        print(f"Coordinates saved to: {coord_filename}")
 
         cv2.imwrite(color_filename, color_image)
         print(f"Color image saved to: {color_filename}")

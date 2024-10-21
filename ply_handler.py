@@ -7,7 +7,7 @@ def pick_points(ply_file):
     vis = o3d.visualization.VisualizerWithVertexSelection()
     vis.create_window("PLY Viewer")
     vis.add_geometry(pcd)
-    vis.run()  # Run the visualizer
+    vis.run()
     vis.destroy_window()
 
     points = vis.get_picked_points()
