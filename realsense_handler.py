@@ -60,7 +60,7 @@ class RealSenseHandler:
 
             self.clicked_coordinates = {"x": x3d, "y": y3d, "z": z3d, "depth": depth_value, "pixel": clicked_pixel}
 
-    def save_data(self, depth_image, color_image):
+    def save_data(self, frames, depth_frame, color_frame, depth_image, color_image):
         if self.clicked_coordinates is None:
             print("No coordinates selected to save.")
         else:
@@ -77,9 +77,19 @@ class RealSenseHandler:
                 json.dump(coordinates_to_save, coord_file, indent=4)
             print(f"Coordinates saved to: {coord_filename}")
 
+        self.pc.map_to(color_frame)
+        points = self.pc.calculate(depth_frame)
         
-        color_filename = self.get_next_filename("color_image", ".png")
-        depth_filename = self.get_next_filename("depth_image", ".npy")
+        next_number, self.ply_filename = self.get_next_filename("pointcloud", ".ply")
+        color_filename = self.get_next_filename("color_image", ".png", next_number)
+        depth_filename = self.get_next_filename("depth_image", ".npy", next_number)
+
+        ply = rs.save_to_ply(self.ply_filename)
+        ply.set_option(rs.save_to_ply.option_ply_binary, False)
+        ply.set_option(rs.save_to_ply.option_ply_normals, True)
+        print("Saving to output.ply...")
+        ply.process(frames)
+        print("Done")
 
         cv2.imwrite(color_filename, color_image)
         print(f"Color image saved to: {color_filename}")
@@ -87,28 +97,17 @@ class RealSenseHandler:
         np.save(depth_filename, depth_image)
         print(f"Depth image saved to: {depth_filename}")
 
-    def get_next_filename(self, base_name, extension):
-        files = os.listdir(self.save_directory)
-        pattern = re.compile(rf'{base_name}_(\d+)\{extension}$')
+    def get_next_filename(self, base_name, extension, next_number= None):
+        if next_number == None:
+            files = os.listdir(self.save_directory)
+            pattern = re.compile(rf'{base_name}_(\d+)\{extension}$')
 
-        numbers = [int(m.group(1)) for f in files if (m := pattern.match(f))]
-        next_number = max(numbers, default=0) + 1 
+            numbers = [int(m.group(1)) for f in files if (m := pattern.match(f))]
+            next_number = max(numbers, default=0) + 1 
 
-        return os.path.join(self.save_directory, f"{base_name}_{next_number}{extension}")
-
-    def save_as_ply(self, frames, depth_frame, color_frame):
-        self.pc.map_to(color_frame)
-        points = self.pc.calculate(depth_frame)
-
-        self.ply_filename = self.get_next_filename("pointcloud", ".ply")
-
-        ply = rs.save_to_ply(self.ply_filename)
-        ply.set_option(rs.save_to_ply.option_ply_binary, False)
-        ply.set_option(rs.save_to_ply.option_ply_normals, True)
-
-        print("Saving to output.ply...")
-        ply.process(frames)
-        print("Done")
+            return next_number, os.path.join(self.save_directory, f"{base_name}_{next_number}{extension}")
+        else:
+            return os.path.join(self.save_directory, f"{base_name}_{next_number}{extension}")
 
     def run(self):
         self.initialize_pipeline()
@@ -140,8 +139,7 @@ class RealSenseHandler:
                     })
 
                     if key == ord('s') or (key == ord('S') and (cv2.waitKey(1) & 0xFF == 224)):
-                        self.save_data(depth_image, color_image)
-                        self.save_as_ply(self.pipeline.wait_for_frames(), depth_frame, color_frame)
+                        self.save_data(self.pipeline.wait_for_frames(), depth_frame, color_frame, depth_image, color_image)
                         break
 
         finally:
