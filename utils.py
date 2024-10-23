@@ -12,7 +12,7 @@ def parse():
     
     return args.load, args.ref
 
-def update_coords(points, save_directory, ref, ply_filename):
+def update_coords(point_coords, save_directory, ref, ply_filename):
     if match := re.search(r".*\\(\d+)$", save_directory):
         load = match.group(1)
     else:
@@ -23,10 +23,8 @@ def update_coords(points, save_directory, ref, ply_filename):
             test_num = match.group(1)
         else:
             raise ValueError("ply filename not valid")
-    
-    point_coords = []
-    for point in points:
-        point_coords.append(list(point.coord))
+
+    point_coords = point_coords.tolist()
 
     json_filename = os.path.join(save_directory, f"Coordinates_{load}.json")
     
