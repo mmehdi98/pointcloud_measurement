@@ -9,7 +9,6 @@ class RealSenseHandler:
     def __init__(self, save_directory, bag_file= None, ref=False):
         self.bag_file = bag_file
         self.save_directory = save_directory
-        self.clicked_coordinates = None
         self.pipeline = rs.pipeline()
         self.config = rs.config()
         self.pc = rs.pointcloud()
@@ -44,40 +43,7 @@ class RealSenseHandler:
 
         return depth_frame, color_frame, depth_image, color_image
 
-    def on_mouse_click(self, event, x, y, flags, param):
-        if event == cv2.EVENT_LBUTTONDOWN:
-            clicked_pixel = (x, y)
-            print(f"Clicked pixel coordinates: {clicked_pixel}")
-            
-            depth_image = param['depth_image']
-            depth_frame = param['depth_frame']
-            
-            depth_value = depth_image[y, x]
-            
-            depth_intrinsics = depth_frame.profile.as_video_stream_profile().intrinsics
-            
-            x3d, y3d, z3d = rs.rs2_deproject_pixel_to_point(depth_intrinsics, clicked_pixel, depth_value)
-            print(f"3D World Coordinates (x, y, z): ({x3d}, {y3d}, {z3d})")
-
-            self.clicked_coordinates = {"x": x3d, "y": y3d, "z": z3d, "depth": depth_value, "pixel": clicked_pixel}
-
     def save_data(self, frames, depth_frame, color_frame, depth_image, color_image):
-        if self.clicked_coordinates is None:
-            print("No coordinates selected to save.")
-        else:
-            coordinates_to_save = {
-                "x": float(self.clicked_coordinates["x"]),
-                "y": float(self.clicked_coordinates["y"]),
-                "z": float(self.clicked_coordinates["z"]),
-                "depth": int(self.clicked_coordinates["depth"]),
-                "pixel": [int(p) for p in self.clicked_coordinates["pixel"]]
-            }
-
-            coord_filename = self.get_next_filename("coordinates_color_image", ".json")
-            with open(coord_filename, 'w') as coord_file:
-                json.dump(coordinates_to_save, coord_file, indent=4)
-            print(f"Coordinates saved to: {coord_filename}")
-
         self.pc.map_to(color_frame)
         points = self.pc.calculate(depth_frame)
         
@@ -139,11 +105,6 @@ class RealSenseHandler:
                     break
 
                 if self.paused:
-                    cv2.setMouseCallback('Color Stream', self.on_mouse_click, param={
-                        'depth_image': depth_image, 
-                        'depth_frame': depth_frame, 
-                    })
-
                     if key == ord('s') or (key == ord('S') and (cv2.waitKey(1) & 0xFF == 224)):
                         self.save_data(self.pipeline.wait_for_frames(), depth_frame, color_frame, depth_image, color_image)
                         break
