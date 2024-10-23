@@ -18,10 +18,11 @@ def update_coords(points, save_directory, ref, ply_filename):
     else:
         raise ValueError("Save directory not valid")
 
-    if match := re.search(r".*_(\d+)\.ply$", ply_filename):
-        test_num = match.group(1)
-    else:
-        raise ValueError("ply filename not valid")
+    if not ref:
+        if match := re.search(r".*_(\d+)\.ply$", ply_filename):
+            test_num = match.group(1)
+        else:
+            raise ValueError("ply filename not valid")
     
     point_coords = []
     for point in points:

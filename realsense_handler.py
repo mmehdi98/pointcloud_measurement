@@ -6,7 +6,7 @@ import os
 import re
 
 class RealSenseHandler:
-    def __init__(self, save_directory, bag_file= None):
+    def __init__(self, save_directory, bag_file= None, ref=False):
         self.bag_file = bag_file
         self.save_directory = save_directory
         self.clicked_coordinates = None
@@ -16,6 +16,7 @@ class RealSenseHandler:
         self.points = rs.points()
         self.align = rs.align(rs.stream.color)
         self.paused = False
+        self.ref = ref
 
         if not os.path.exists(self.save_directory):
             os.makedirs(self.save_directory)
@@ -80,16 +81,21 @@ class RealSenseHandler:
         self.pc.map_to(color_frame)
         points = self.pc.calculate(depth_frame)
         
-        next_number, self.ply_filename = self.get_next_filename("pointcloud", ".ply")
-        color_filename = self.get_next_filename("color_image", ".png", next_number)
-        depth_filename = self.get_next_filename("depth_image", ".npy", next_number)
+        if self.ref:
+            self.ply_filename = os.path.join(self.save_directory, "pointcloud_ref.ply")
+            color_filename = os.path.join(self.save_directory, "color_image_ref.png")
+            depth_filename = os.path.join(self.save_directory, "depth_image_ref.npy")
+        else:
+            next_number, self.ply_filename = self.get_next_filename("pointcloud", ".ply")
+            color_filename = self.get_next_filename("color_image", ".png", next_number)
+            depth_filename = self.get_next_filename("depth_image", ".npy", next_number)
 
         ply = rs.save_to_ply(self.ply_filename)
         ply.set_option(rs.save_to_ply.option_ply_binary, False)
         ply.set_option(rs.save_to_ply.option_ply_normals, True)
-        print("Saving to output.ply...")
+        print(f"Saving ply file ...")
         ply.process(frames)
-        print("Done")
+        print(f"Pointcloud saved to: {self.ply_filename}")
 
         cv2.imwrite(color_filename, color_image)
         print(f"Color image saved to: {color_filename}")
