@@ -41,7 +41,7 @@ class RealSenseHandler:
         depth_image = np.asanyarray(depth_frame.get_data())
         color_image = np.asanyarray(color_frame.get_data())
 
-        return depth_frame, color_frame, depth_image, color_image
+        return frames, depth_frame, color_frame, depth_image, color_image
 
     def save_data(self, frames, depth_frame, color_frame, depth_image, color_image):
         self.pc.map_to(color_frame)
@@ -87,7 +87,7 @@ class RealSenseHandler:
         try:
             while True:
                 if not self.paused:
-                    depth_frame, color_frame, depth_image, color_image = self.process_frames()
+                    frames, depth_frame, color_frame, depth_image, color_image = self.process_frames()
                     if depth_image is None or color_image is None:
                         continue
 
@@ -106,7 +106,7 @@ class RealSenseHandler:
 
                 if self.paused:
                     if key == ord('s') or (key == ord('S') and (cv2.waitKey(1) & 0xFF == 224)):
-                        self.save_data(self.pipeline.wait_for_frames(), depth_frame, color_frame, depth_image, color_image)
+                        self.save_data(frames, depth_frame, color_frame, depth_image, color_image)
                         break
 
         finally:

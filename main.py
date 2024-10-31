@@ -9,7 +9,7 @@ def main():
     save_directory = f"F:\\Measurements\\SavedData\\{load}"
 
     if stream_from_bag:
-        bag_file = "F:\\Measurements\\Test 1\\300\\20240624_155309.bag"
+        bag_file = "F:\\Measurements\\Test 2\\Section1 - left\\1000\\20240803_215734.bag"
         handler = RealSenseHandler(save_directory, bag_file=bag_file, ref=ref)
     else:
         handler = RealSenseHandler(save_directory, ref=ref)
